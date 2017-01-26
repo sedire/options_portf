@@ -1,7 +1,7 @@
 #ifndef _MAIN_FUNC_
 #define _MAIN_FUNC_ 1
 
-#pragma comment( lib, "C:/Users/dchernikov/Documents/nlopt-2.4.2-dll64/libnlopt-0.lib" )
+#pragma comment( lib, "D:/research/nlopt-2.4.2-dll64/libnlopt-0.lib" )
 
 #include <iostream>
 #include <iomanip>
@@ -21,7 +21,7 @@ using std::endl;
 
 int main()
 {
-	//StockDataPack dataPack;
+	StockDataPack dataPack;
 
 	//vector<string> stockNames;
 	//vector<P_PRES> stockPrices;
@@ -31,32 +31,42 @@ int main()
 	time_t beginT1 = time( 0 );
 
 	InputReader inpReader;
-	inpReader.readStockData( "C:\\Users\\dchernikov\\Documents\\OptionPaper\\newfile.csv"
+	inpReader.readStockData( "D:\\docs\\study\\OptionPaper\\newfile.csv"
 								, &dataPack.stockNames, &dataPack.stockPrices, &dataPack.stockVols, &dataPack.stockReturns );
 	dataPack.rebalanceTime = 5.0 / 252.0;	//rebalance every week
 	dataPack.expTime = 1.5;				//options will mature in about a year and a half
 	dataPack.riskFreeRate = 0.0072;		//12-month goverment bond yield as a rist-free rate
 
-	vector<P_PRES> xx( 2 * dataPack.stockNames.size(), 1.0 );
+	vector<P_PRES> xx( 2 * dataPack.stockNames.size(), 1.0 / dataPack.stockNames.size() );
 	vector<P_PRES> gg( 2 * dataPack.stockNames.size(), 0.0 );
 	for( int i = dataPack.stockNames.size(); i < xx.size(); ++i )
 	{
 		xx[i] = dataPack.stockPrices[i - dataPack.stockNames.size()];	//initial strikes are current prices of stocks
 	}
 
-	ifstream ifs( "MMAoptPoint.txt" );
-	for( int i = 0; i < dataPack.stockNames.size() * 2; ++i )
-	{
-		ifs >> xx[i];
-	}
-	ifs.close();
+	//ifstream ifs( "MMAoptPoint.txt" );
+	//for( int i = 0; i < dataPack.stockNames.size() * 2; ++i )
+	//{
+	//	ifs >> xx[i];
+	//}
+	//ifs.close();
 
 	//cout << " Start running options algorithm:\n";
 	//time_t begin = time( 0 );
-	//optionPortfObjCUDA( xx, gg, ( void* )( &dataPack ) );
-	//optionPortfObj2( xx, gg, ( void* )( &dataPack ) );
-	//budgetConstr( xx, gg, ( void* )( &dataPack ) );
+	////optionPortfObjCUDA( xx, gg, ( void* )( &dataPack ) );
+	//P_PRES res = optionPortfObjWeights( xx, gg, ( void* )( &dataPack ) );
+
+	//vector<P_PRES> gg2;
+	//vector<P_PRES> xx1 = xx;
+	//vector<P_PRES> xx2 = xx;
+	//P_PRES dx = 1e-8;
+	//xx1[dataPack.stockNames.size() + 2] -= dx;
+	//xx2[dataPack.stockNames.size() + 2] += dx;
+	//P_PRES res2 = optionPortfObjWeights( xx2, gg2, ( void* )( &dataPack ) );
+	//P_PRES res1 = optionPortfObjWeights( xx1, gg2, ( void* )( &dataPack ) );
+	////budgetConstr( xx, gg, ( void* )( &dataPack ) );
 	//cout << " :: done in " << time( 0 ) - begin << endl;
+	//cout << " the result is " << gg[dataPack.stockNames.size() + 2] << " " << ( res2 - res1 ) / 2.0 / dx << endl;
 	//cout << " --------------------\n";
 
 
@@ -95,7 +105,7 @@ int main()
 
 	opt.add_inequality_constraint( budgetConstr, (void*)&dataPack, 1e-3 );
 
-	opt.set_max_objective( optionPortfObj2, (void*)&dataPack );
+	opt.set_max_objective( optionPortfObj, (void*)&dataPack );
 
 	//opt.set_xtol_rel( 1e-10 );
 	//opt.set_ftol_rel( 1e-10 );
@@ -132,7 +142,7 @@ int main()
 	vector<P_PRES> fakeG;
 	off << budgetConstr( xx, fakeG, ( void* )( &dataPack ) ) << endl;
 
-	optionPortfObj2( xx, gg, ( void* )( &dataPack ) );
+	optionPortfObj( xx, gg, ( void* )( &dataPack ) );
 	P_PRES gradNorm = 0.0;
 	for( int i = 0; i < dim; ++i )
 	{
