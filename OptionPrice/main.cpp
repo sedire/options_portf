@@ -1,7 +1,8 @@
 #ifndef _MAIN_FUNC_
 #define _MAIN_FUNC_ 1
 
-#pragma comment( lib, "D:/research/nlopt-2.4.2-dll64/libnlopt-0.lib" )
+//#pragma comment( lib, "D:/research/nlopt-2.4.2-dll64/libnlopt-0.lib" )
+#pragma comment( lib, "C:/Users/dchernikov/Documents/nlopt-2.4.2-dll64/libnlopt-0.lib" )
 
 #include <iostream>
 #include <iomanip>
@@ -31,7 +32,7 @@ int main()
 	time_t beginT1 = time( 0 );
 
 	InputReader inpReader;
-	inpReader.readStockData( "D:\\docs\\study\\OptionPaper\\newfile.csv"
+	inpReader.readStockData( "C:\\Users\\dchernikov\\Documents\\OptionPaper\\newfile.csv"
 								, &dataPack.stockNames, &dataPack.stockPrices, &dataPack.stockVols, &dataPack.stockReturns );
 	dataPack.rebalanceTime = 5.0 / 252.0;	//rebalance every week
 	dataPack.expTime = 1.5;				//options will mature in about a year and a half
@@ -44,12 +45,14 @@ int main()
 		xx[i] = dataPack.stockPrices[i - dataPack.stockNames.size()];	//initial strikes are current prices of stocks
 	}
 
-	//ifstream ifs( "MMAoptPoint.txt" );
-	//for( int i = 0; i < dataPack.stockNames.size() * 2; ++i )
-	//{
-	//	ifs >> xx[i];
-	//}
-	//ifs.close();
+	ifstream ifs( "MMAoptPoint.txt" );
+	for( int i = 0; i < dataPack.stockNames.size() * 2; ++i )
+	{
+		ifs >> xx[i];
+		cout << xx[i] << endl;
+	}
+	cout << " ---------------\n";
+	ifs.close();
 
 	//cout << " Start running options algorithm:\n";
 	//time_t begin = time( 0 );
@@ -76,9 +79,9 @@ int main()
 
 	int dim = dataPack.stockNames.size() * 2;
 
-	nlopt::opt opt( nlopt::LD_MMA, dim );
+	//nlopt::opt opt( nlopt::LD_MMA, dim );
 	//nlopt::opt opt( nlopt::LD_SLSQP, dim );
-	//nlopt::opt opt( nlopt::GN_ISRES, dim );
+	nlopt::opt opt( nlopt::GN_ISRES, dim );
 	//nlopt::opt opt( nlopt::LD_LBFGS, dim );
 
 	std::vector<P_PRES> lb( dim );
@@ -95,7 +98,7 @@ int main()
 	std::vector<P_PRES> ub( dim );
 	for( int i = 0; i < dataPack.stockNames.size(); ++i )
 	{
-		ub[i] = 1000.0;
+		ub[i] = 0.1;
 	}
 	for( int i = dataPack.stockNames.size(); i < dim; ++i )
 	{
@@ -103,14 +106,14 @@ int main()
 	}
 	opt.set_upper_bounds( ub );
 
-	opt.add_inequality_constraint( budgetConstr, (void*)&dataPack, 1e-3 );
+	opt.add_inequality_constraint( budgetConstrWeights, (void*)&dataPack, 1e-3 );
 
-	opt.set_max_objective( optionPortfObj, (void*)&dataPack );
+	opt.set_max_objective( optionPortfObjWeights, (void*)&dataPack );
 
 	//opt.set_xtol_rel( 1e-10 );
 	//opt.set_ftol_rel( 1e-10 );
-	//opt.set_stopval( 10451.8 );
-	opt.set_maxtime( 7200 * 2 * 2 * 2 );
+	opt.set_stopval( 1.054 );
+	opt.set_maxtime( 7200 * 2 * 2 * 2 * 2 * 2 );
 
 	P_PRES minf;
 	nlopt::result result;
@@ -140,9 +143,9 @@ int main()
 	off << minf << endl;
 
 	vector<P_PRES> fakeG;
-	off << budgetConstr( xx, fakeG, ( void* )( &dataPack ) ) << endl;
+	off << budgetConstrWeights( xx, fakeG, ( void* )( &dataPack ) ) << endl;
 
-	optionPortfObj( xx, gg, ( void* )( &dataPack ) );
+	optionPortfObjWeights( xx, gg, ( void* )( &dataPack ) );
 	P_PRES gradNorm = 0.0;
 	for( int i = 0; i < dim; ++i )
 	{

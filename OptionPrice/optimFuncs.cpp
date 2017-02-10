@@ -95,6 +95,7 @@ P_PRES optionPortfObj( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_da
 	return obj;
 }
 
+//Implementing optimization for the case when no gradient is needed
 P_PRES optionPortfObjNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_data )	//in x put quantities first, then strikes
 {
 	time_t beginT = time( 0 );
@@ -165,7 +166,6 @@ P_PRES optionPortfObjNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void
 	return obj;
 }
 
-//Implementing optimization for the case when no gradient is needed
 P_PRES optionPortfObjWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_data )		//in x put weights first, then strikes
 {
 	time_t beginT = time( 0 );
