@@ -22,9 +22,10 @@ using std::ofstream;
 
 P_PRES rosenbrockFunc( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_data );
 
-extern P_PRES cudaOptionPortfObjWrap( const vector<P_PRES> &x, vector<P_PRES> &grad, StockDataPack* dataPack );
+//extern P_PRES cudaOptionPortfObjWrap( const vector<P_PRES> &x, vector<P_PRES> &grad, StockDataPack* dataPack );
 
 P_PRES optionPortfObj( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_data );
+P_PRES preOptionPortfObj( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_data );
 P_PRES optionPortfObjNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_data );
 P_PRES optionPortfObjWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_data );
 P_PRES optionPortfObjCUDA( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_data );

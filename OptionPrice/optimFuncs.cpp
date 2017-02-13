@@ -27,7 +27,7 @@ P_PRES optionPortfObj( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_da
 		cout << "ERROR in optionPortfObj: passed data is null\n";
 		return 0;
 	}
-	StockDataPack* dataPack = static_cast<StockDataPack*>( f_data );
+	StockDataPack<HPD<P_PRES, 1> >* dataPack = static_cast<StockDataPack<HPD<P_PRES, 1> >*>( f_data );
 	int stockNum = dataPack->stockNames.size();
 	int scenNum = dataPack->stockReturns[0].size();
 	P_PRES scenProb = 1.0 / scenNum;
@@ -62,7 +62,7 @@ P_PRES optionPortfObj( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_da
 		P_PRES stockPriceMax = *max_element( scenStockPrices.begin(), scenStockPrices.end() );
 
 		//time_t begin2 = time( 0 );
-		priceAmerPut2<HPD<P_PRES, 1> >( maturityTime
+		priceAmerPut<HPD<P_PRES, 1> >( maturityTime
 										, stockPriceMin, stockPriceMax
 										, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
 										, &optionPriceArr, &Sarr
@@ -95,6 +95,60 @@ P_PRES optionPortfObj( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_da
 	return obj;
 }
 
+P_PRES preOptionPortfObj( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_data )	//in x put quantities first, then strikes
+{
+	time_t beginT = time( 0 );
+	cout << " ::obj called at  " << x[0] << " ... " << x[x.size() / 2 - 1] << " " << x[x.size() / 2] << " ... " << x[x.size() - 1] << endl;
+	if( f_data == 0 )
+	{
+		cout << "ERROR in optionPortfObj: passed data is null\n";
+		return 0;
+	}
+	StockDataPack<HPD<P_PRES, 1> >* dataPack = static_cast<StockDataPack<HPD<P_PRES, 1> >*>( f_data );
+	int stockNum = dataPack->stockNames.size();
+	int scenNum = dataPack->stockReturns[0].size();
+	P_PRES scenProb = 1.0 / scenNum;
+
+	P_PRES maturityTime = dataPack->expTime - dataPack->rebalanceTime;
+
+	vector<HPD<P_PRES, 1> > optionScenPrices( scenNum );
+
+	//reset the gradient
+	for( int i = 0; i < grad.size(); ++i )
+	{
+		grad[i] = 0.0;
+	}
+
+	P_PRES obj = 0.0;
+	for( int stock = 0; stock < stockNum; ++stock )
+	{
+		prepOptPriceAt<HPD<P_PRES, 1> >( dataPack->stockPricesScenSorted[stock], dataPack->stockPricesScenOrder[stock], x[stock + stockNum]
+					, dataPack->us[stock], dataPack->Lmins[stock], dataPack->dxs[stock]
+					, maturityTime, dataPack->riskFreeRate, dataPack->stockVols[stock]
+					, &optionScenPrices );
+
+		for( int scen = 0; scen < scenNum; ++scen )
+		{
+			if( grad.size() > 0 )
+			{
+				//now calculate the corresponding terms of the gradient
+				//weight derivatives
+				grad[stock] += scenProb * optionScenPrices[scen].real();
+				//strike derivatives
+				grad[stockNum + stock] += scenProb * x[stock] * optionScenPrices[scen].elems[1];
+			}
+			//now calculate the part of the objective function corresponding to the scenario
+			obj += scenProb * x[stock] * optionScenPrices[scen].real();
+		}
+	}
+
+	//of.close();
+	cout << " the obj is " << obj << endl;
+	cout << " done in " << time( 0 ) - beginT << endl;
+
+	return obj;
+}
+
 //Implementing optimization for the case when no gradient is needed
 P_PRES optionPortfObjNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_data )	//in x put quantities first, then strikes
 {
@@ -105,7 +159,7 @@ P_PRES optionPortfObjNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void
 		cout << "ERROR in optionPortfObj: passed data is null\n";
 		return 0;
 	}
-	StockDataPack* dataPack = static_cast<StockDataPack*>( f_data );
+	StockDataPack<HPD<P_PRES, 1> >* dataPack = static_cast<StockDataPack<HPD<P_PRES, 1> >*>( f_data );
 	int stockNum = dataPack->stockNames.size();
 	int scenNum = dataPack->stockReturns[0].size();
 	P_PRES scenProb = 1.0 / scenNum;
@@ -137,7 +191,7 @@ P_PRES optionPortfObjNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void
 		//cout << " _ " << stockPriceMin << " " << stockPriceMax <<  " " << dataPack->stockPrices[stock] << endl;
 
 		//time_t begin2 = time( 0 );
-		priceAmerPut2<P_PRES>( maturityTime
+		priceAmerPut<P_PRES>( maturityTime
 										, stockPriceMin, stockPriceMax
 										, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
 										, &optionPriceArr, &Sarr
@@ -175,7 +229,7 @@ P_PRES optionPortfObjWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, voi
 		cout << "ERROR in optionPortfObj: passed data is null\n";
 		return 0;
 	}
-	StockDataPack* dataPack = static_cast<StockDataPack*>( f_data );
+	StockDataPack<HPD<P_PRES, 1> >* dataPack = static_cast<StockDataPack<HPD<P_PRES, 1> >*>( f_data );
 	int stockNum = dataPack->stockNames.size();
 	int scenNum = dataPack->stockReturns[0].size();
 	P_PRES scenProb = 1.0 / scenNum;
@@ -218,11 +272,11 @@ P_PRES optionPortfObjWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, voi
 		if( grad.size() > 0 )
 		{
 			//time_t begin2 = time( 0 );
-			priceAmerPut2<HPD<P_PRES, 1> >( maturityTime0
+			priceAmerPut<HPD<P_PRES, 1> >( maturityTime0
 											, dataPack->stockPrices[stock], dataPack->stockPrices[stock]
 											, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
 											, &optionPriceArr0, &Sarr0 );	//initial option price curve
-			priceAmerPut2<HPD<P_PRES, 1> >( maturityTime
+			priceAmerPut<HPD<P_PRES, 1> >( maturityTime
 											, stockPriceMin, stockPriceMax
 											, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
 											, &optionPriceArr, &Sarr );		//option price curve at rebalance time
@@ -234,11 +288,11 @@ P_PRES optionPortfObjWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, voi
 		else	//if no grad is needed
 		{
 			//time_t begin2 = time( 0 );
-			priceAmerPut2<P_PRES>( maturityTime0
+			priceAmerPut<P_PRES>( maturityTime0
 											, dataPack->stockPrices[stock], dataPack->stockPrices[stock]
 											, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
 											, &optionPriceArr0NoGrad, &Sarr0 );	//initial option price curve
-			priceAmerPut2<P_PRES>( maturityTime
+			priceAmerPut<P_PRES>( maturityTime
 											, stockPriceMin, stockPriceMax
 											, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
 											, &optionPriceArrNoGrad, &Sarr );		//option price curve at rebalance time
@@ -289,7 +343,7 @@ P_PRES budgetConstr( const vector<P_PRES> &x, vector<P_PRES> &grad, void* data )
 		cout << "ERROR in optionPortfObj: passed data is null\n";
 		return 0;
 	}
-	StockDataPack* dataPack = static_cast<StockDataPack*>( data );
+	StockDataPack<HPD<P_PRES, 1> >* dataPack = static_cast<StockDataPack<HPD<P_PRES, 1> >*>( data );
 	int stockNum = dataPack->stockNames.size();
 	P_PRES maturityTime = dataPack->expTime;
 
@@ -315,7 +369,7 @@ P_PRES budgetConstr( const vector<P_PRES> &x, vector<P_PRES> &grad, void* data )
 		//cout << "\tOption " << dataPack->stockNames[stock] << "\t";
 
 		//time_t begin2 = time( 0 );
-		priceAmerPut2<HPD<P_PRES, 1> >( maturityTime
+		priceAmerPut<HPD<P_PRES, 1> >( maturityTime
 										, stockPrice, stockPrice
 										, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
 										, &optionPriceArr, &Sarr 
@@ -344,7 +398,7 @@ P_PRES budgetConstrNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void* 
 		cout << "ERROR in optionPortfObj: passed data is null\n";
 		return 0;
 	}
-	StockDataPack* dataPack = static_cast<StockDataPack*>( data );
+	StockDataPack<HPD<P_PRES, 1> >* dataPack = static_cast<StockDataPack<HPD<P_PRES, 1> >*>( data );
 	int stockNum = dataPack->stockNames.size();
 	P_PRES maturityTime = dataPack->expTime;
 
@@ -365,7 +419,7 @@ P_PRES budgetConstrNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void* 
 		//cout << "\tOption " << dataPack->stockNames[stock] << "\t";
 
 		//time_t begin2 = time( 0 );
-		priceAmerPut2<P_PRES>( maturityTime
+		priceAmerPut<P_PRES>( maturityTime
 										, stockPrice, stockPrice
 										, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
 										, &optionPriceArr, &Sarr 
@@ -393,7 +447,7 @@ P_PRES budgetConstrWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, void*
 		cout << "ERROR in optionPortfObj: passed data is null\n";
 		return 0;
 	}
-	StockDataPack* dataPack = static_cast<StockDataPack*>( data );
+	StockDataPack<HPD<P_PRES, 1> >* dataPack = static_cast<StockDataPack<HPD<P_PRES, 1> >*>( data );
 	int stockNum = dataPack->stockNames.size();
 
 	if( grad.size() > 0 )
