@@ -37,7 +37,7 @@ int main()
 	dataPack.doPreCalc();
 	cout << " pre calc done in " << time( 0 ) - beginT1 << endl;
 
-	vector<P_PRES> xx( 2 * dataPack.stockNames.size(), 1.0 / dataPack.stockNames.size() );
+	vector<P_PRES> xx( 2 * dataPack.stockNames.size(), 1.0 /*1.0 / dataPack.stockNames.size()*/ );
 	vector<P_PRES> gg( 2 * dataPack.stockNames.size(), 0.0 );
 	for( int i = dataPack.stockNames.size(); i < xx.size(); ++i )
 	{
