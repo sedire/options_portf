@@ -44,6 +44,45 @@ int main()
 		xx[i] = dataPack.stockPrices[i - dataPack.stockNames.size()];	//initial strikes are current prices of stocks
 	}
 
+	vector<P_PRES> gg2( 2 * dataPack.stockNames.size(), 0.0 );
+	P_PRES val1 = preOptionPortfObj( xx, gg, ( void* )( &dataPack ) );
+	P_PRES val2 = optionPortfObj( xx, gg2, ( void* )( &dataPack ) );
+
+	cout << " ------------\n";
+	cout << val1 << endl;
+	cout << val2 << endl;
+	cout << " ------------\n";
+	P_PRES maxDiff = 0.0;
+	for( int i = 0; i < gg2.size(); ++i )
+	{
+		if( abs( gg[i] - gg2[i] ) > maxDiff )
+		{
+			maxDiff = abs( gg[i] - gg2[i] );
+		}
+	}
+	cout << " lInf diff in grad is " << maxDiff << endl;
+	cout << " ------------\n";
+	
+	val1 = preBudgetConstr( xx, gg, ( void* )( &dataPack ) );
+	val2 = budgetConstr( xx, gg2, ( void* )( &dataPack ) );
+
+	cout << " ------------\n";
+	cout << val1 << endl;
+	cout << val2 << endl;
+	cout << " ------------\n";
+	maxDiff = 0.0;
+	for( int i = 0; i < gg2.size(); ++i )
+	{
+		if( abs( gg[i] - gg2[i] ) > maxDiff )
+		{
+			maxDiff = abs( gg[i] - gg2[i] );
+		}
+	}
+	cout << " lInf diff in grad is " << maxDiff << endl;
+	cout << " ------------\n";
+
+	std::cin.ignore( std::numeric_limits<std::streamsize>::max(), '\n' );
+
 	//ifstream ifs( "MMAoptPoint.txt" );
 	//for( int i = 0; i < dataPack.stockNames.size() * 2; ++i )
 	//{
@@ -78,8 +117,8 @@ int main()
 
 	int dim = dataPack.stockNames.size() * 2;
 
-	nlopt::opt opt( nlopt::LD_MMA, dim );
-	//nlopt::opt opt( nlopt::LD_SLSQP, dim );
+	//nlopt::opt opt( nlopt::LD_MMA, dim );
+	nlopt::opt opt( nlopt::LD_SLSQP, dim );
 	//nlopt::opt opt( nlopt::GN_ISRES, dim );
 	//nlopt::opt opt( nlopt::LD_LBFGS, dim );
 
@@ -106,7 +145,7 @@ int main()
 	}
 	opt.set_upper_bounds( ub );
 
-	opt.add_inequality_constraint( budgetConstr, (void*)&dataPack, 1e-3 );
+	opt.add_inequality_constraint( preBudgetConstr, (void*)&dataPack, 1e-3 );
 
 	opt.set_max_objective( preOptionPortfObj, (void*)&dataPack );
 
@@ -143,7 +182,7 @@ int main()
 	off << minf << endl;
 
 	vector<P_PRES> fakeG;
-	off << budgetConstr( xx, fakeG, ( void* )( &dataPack ) ) << endl;
+	off << preBudgetConstr( xx, fakeG, ( void* )( &dataPack ) ) << endl;
 
 	preOptionPortfObj( xx, gg, ( void* )( &dataPack ) );
 	P_PRES gradNorm = 0.0;

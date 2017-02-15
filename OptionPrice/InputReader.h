@@ -55,6 +55,7 @@ private:
 template<class PR_NUM>
 void StockDataPack<PR_NUM>::doPreCalc()
 {
+	cout << "Doing the pre-calc\n";
 	//Calc all possible scenario stock prices based on returns,
 	//sort them and keep the original order stored separately.
 	stockPricesScenSorted.resize( stockNames.size() );

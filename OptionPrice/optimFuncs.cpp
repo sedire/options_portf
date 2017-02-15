@@ -64,7 +64,8 @@ P_PRES optionPortfObj( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f_da
 		//time_t begin2 = time( 0 );
 		priceAmerPut<HPD<P_PRES, 1> >( maturityTime
 										, stockPriceMin, stockPriceMax
-										, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
+										, x[stockNum + stock], dataPack->stockPrices[stock] / 2.0, dataPack->stockPrices[stock] * 2.0
+										, dataPack->riskFreeRate, dataPack->stockVols[stock]
 										, &optionPriceArr, &Sarr
 										/*, &priceU, &priceG, &priceB*/ );
 		//cout << "done in " << time( 0 ) - begin2 << endl;
@@ -193,7 +194,8 @@ P_PRES optionPortfObjNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void
 		//time_t begin2 = time( 0 );
 		priceAmerPut<P_PRES>( maturityTime
 										, stockPriceMin, stockPriceMax
-										, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
+										, x[stockNum + stock], dataPack->stockPrices[stock] / 2.0, dataPack->stockPrices[stock] * 2.0
+										, dataPack->riskFreeRate, dataPack->stockVols[stock]
 										, &optionPriceArr, &Sarr
 										/*, &priceU, &priceG, &priceB*/ );
 		//cout << "done in " << time( 0 ) - begin2 << endl;
@@ -274,11 +276,13 @@ P_PRES optionPortfObjWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, voi
 			//time_t begin2 = time( 0 );
 			priceAmerPut<HPD<P_PRES, 1> >( maturityTime0
 											, dataPack->stockPrices[stock], dataPack->stockPrices[stock]
-											, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
+											, x[stockNum + stock], dataPack->stockPrices[stock] / 2.0, dataPack->stockPrices[stock] * 2.0
+											, dataPack->riskFreeRate, dataPack->stockVols[stock]
 											, &optionPriceArr0, &Sarr0 );	//initial option price curve
 			priceAmerPut<HPD<P_PRES, 1> >( maturityTime
 											, stockPriceMin, stockPriceMax
-											, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
+											, x[stockNum + stock], dataPack->stockPrices[stock] / 2.0, dataPack->stockPrices[stock] * 2.0
+											, dataPack->riskFreeRate, dataPack->stockVols[stock]
 											, &optionPriceArr, &Sarr );		//option price curve at rebalance time
 			//cout << "done in " << time( 0 ) - begin2 << endl;
 
@@ -290,11 +294,13 @@ P_PRES optionPortfObjWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, voi
 			//time_t begin2 = time( 0 );
 			priceAmerPut<P_PRES>( maturityTime0
 											, dataPack->stockPrices[stock], dataPack->stockPrices[stock]
-											, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
+											, x[stockNum + stock], dataPack->stockPrices[stock] / 2.0, dataPack->stockPrices[stock] * 2.0
+											, dataPack->riskFreeRate, dataPack->stockVols[stock]
 											, &optionPriceArr0NoGrad, &Sarr0 );	//initial option price curve
 			priceAmerPut<P_PRES>( maturityTime
 											, stockPriceMin, stockPriceMax
-											, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
+											, x[stockNum + stock], dataPack->stockPrices[stock] / 2.0, dataPack->stockPrices[stock] * 2.0
+											, dataPack->riskFreeRate, dataPack->stockVols[stock]
 											, &optionPriceArrNoGrad, &Sarr );		//option price curve at rebalance time
 			//cout << "done in " << time( 0 ) - begin2 << endl;
 
@@ -371,7 +377,8 @@ P_PRES budgetConstr( const vector<P_PRES> &x, vector<P_PRES> &grad, void* data )
 		//time_t begin2 = time( 0 );
 		priceAmerPut<HPD<P_PRES, 1> >( maturityTime
 										, stockPrice, stockPrice
-										, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
+										, x[stockNum + stock], dataPack->stockPrices[stock] / 2.0, dataPack->stockPrices[stock] * 2.0
+										, dataPack->riskFreeRate, dataPack->stockVols[stock]
 										, &optionPriceArr, &Sarr 
 										/*, &priceU, &priceG, &priceB*/ );
 		//cout << "done in " << time( 0 ) - begin2 << endl;
@@ -383,6 +390,50 @@ P_PRES budgetConstr( const vector<P_PRES> &x, vector<P_PRES> &grad, void* data )
 		{
 			grad[stock] = optionPrice.real();
 			grad[stockNum + stock] = x[stock] * optionPrice.elems[1];
+		}
+	}
+	cout << " constr value " << ret - TOTAL_BUDGET << endl;
+	cout << " ====================\n";
+	return ret - TOTAL_BUDGET;
+}
+
+P_PRES preBudgetConstr( const vector<P_PRES> &x, vector<P_PRES> &grad, void* data )
+{
+	cout << " constr called at  " << x[0] << " ... " << x[x.size() / 2 - 1] << " " << x[x.size() / 2] << " ... " << x[x.size() - 1] << endl;
+	if( data == 0 )
+	{
+		cout << "ERROR in optionPortfObj: passed data is null\n";
+		return 0;
+	}
+	StockDataPack<HPD<P_PRES, 1> >* dataPack = static_cast<StockDataPack<HPD<P_PRES, 1> >*>( data );
+	int stockNum = dataPack->stockNames.size();
+	P_PRES maturityTime = dataPack->expTime;
+
+	P_PRES ret = 0.0;
+	vector<HPD<P_PRES, 1> > optionPrice( 1 );
+
+	//reset the gradient
+	for( int i = 0; i < grad.size(); ++i )
+	{
+		grad[i] = 0.0;
+	}
+
+	for( int stock = 0; stock < stockNum; ++stock )
+	{
+		P_PRES stockPrice = dataPack->stockPrices[stock];
+		vector<P_PRES> singleSpot( 1, stockPrice );	//only a single price
+		vector<int> trivialOrder( 1, 0 );		//the order is trivial
+
+		prepOptPriceAt( singleSpot, trivialOrder, x[stock + stockNum]
+					, dataPack->us0[stock], dataPack->Lmins0[stock], dataPack->dxs0[stock]
+					, maturityTime, dataPack->riskFreeRate, dataPack->stockVols[stock]
+					, &optionPrice );
+
+		ret += x[stock] * optionPrice[0].real();
+		if( grad.size() > 0 )
+		{
+			grad[stock] = optionPrice[0].real();
+			grad[stockNum + stock] = x[stock] * optionPrice[0].elems[1];
 		}
 	}
 	cout << " constr value " << ret - TOTAL_BUDGET << endl;
@@ -421,7 +472,8 @@ P_PRES budgetConstrNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void* 
 		//time_t begin2 = time( 0 );
 		priceAmerPut<P_PRES>( maturityTime
 										, stockPrice, stockPrice
-										, x[stockNum + stock], dataPack->riskFreeRate, dataPack->stockVols[stock]
+										, x[stockNum + stock], dataPack->stockPrices[stock] / 2.0, dataPack->stockPrices[stock] * 2.0
+										, dataPack->riskFreeRate, dataPack->stockVols[stock]
 										, &optionPriceArr, &Sarr 
 										/*, &priceU, &priceG, &priceB*/ );
 		//cout << "done in " << time( 0 ) - begin2 << endl;

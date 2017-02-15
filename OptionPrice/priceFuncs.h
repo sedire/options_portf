@@ -171,7 +171,7 @@ int prePriceAmerPut( P_PRES expT, P_PRES Smin, P_PRES Smax
 
 template <class PR_NUM>
 int priceAmerPut( P_PRES expT, P_PRES Smin, P_PRES Smax
-							, P_PRES E, P_PRES r, P_PRES sigma
+							, P_PRES E, P_PRES Emin, P_PRES Emax, P_PRES r, P_PRES sigma
 							, vector<PR_NUM>* P, vector<P_PRES>* Sarr	//do we really need Sarr here?
 							/*, vector<PR_NUM>* u, vector<PR_NUM>* g, vector<PR_NUM>* b*/ )
 {
@@ -181,9 +181,9 @@ int priceAmerPut( P_PRES expT, P_PRES Smin, P_PRES Smax
 	P_PRES dt = finalTau / NUM_OF_TIME_STEPS;
 
 	//P_PRES LminRef = fabs( floor( log( LOWEST_PRICE / E ) ) );	//that's what I had initially
-	P_PRES LminRef = fabs( floor( log( Smin / LOW_PRICE_FACTOR / E ) ) );
+	P_PRES LminRef = fabs( floor( log( Smin / LOW_PRICE_FACTOR / Emax ) ) );
 	//P_PRES LmaxRef = log( HIGH_PRICE_FACTOR );	//log( E * HIGH_PRICE_FACTOR / E );		//that's what I had initially
-	P_PRES LmaxRef = log( Smax * HIGH_PRICE_FACTOR / E );
+	P_PRES LmaxRef = log( Smax * HIGH_PRICE_FACTOR / Emin );
 
 	P_PRES dx = ( LmaxRef + LminRef ) / ( NUM_OF_SPACE_STEPS - 1 );	
 
