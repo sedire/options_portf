@@ -1,8 +1,8 @@
 #ifndef _MAIN_FUNC_
 #define _MAIN_FUNC_ 1
 
-#pragma comment( lib, "D:/research/nlopt-2.4.2-dll64/libnlopt-0.lib" )
-//#pragma comment( lib, "C:/Users/dchernikov/Documents/nlopt-2.4.2-dll64/libnlopt-0.lib" )
+//#pragma comment( lib, "D:/research/nlopt-2.4.2-dll64/libnlopt-0.lib" )
+#pragma comment( lib, "C:/Users/dchernikov/Documents/nlopt-2.4.2-dll64/libnlopt-0.lib" )
 
 #include <iostream>
 #include <iomanip>
@@ -27,7 +27,7 @@ int main()
 	time_t beginT1 = time( 0 );
 
 	InputReader inpReader;
-	inpReader.readStockData( /*"C:\\Users\\dchernikov\\Documents\\OptionPaper\\newfile.csv"*/ "D:\\docs\\study\\OptionPaper\\newfile.csv"
+	inpReader.readStockData( "C:\\Users\\dchernikov\\Documents\\OptionPaper\\newfile.csv" /*"D:\\docs\\study\\OptionPaper\\newfile.csv"*/
 								, &dataPack.stockNames, &dataPack.stockPrices, &dataPack.stockVols, &dataPack.stockReturns );
 	dataPack.rebalanceTime = 5.0 / 252.0;	//rebalance every week
 	dataPack.expTime = 1.5;				//options will mature in about a year and a half
@@ -44,53 +44,64 @@ int main()
 		xx[i] = dataPack.stockPrices[i - dataPack.stockNames.size()];	//initial strikes are current prices of stocks
 	}
 
-	vector<P_PRES> gg2( 2 * dataPack.stockNames.size(), 0.0 );
-	P_PRES val1 = preOptionPortfObj( xx, gg, ( void* )( &dataPack ) );
-	P_PRES val2 = optionPortfObj( xx, gg2, ( void* )( &dataPack ) );
-
-	cout << " ------------\n";
-	cout << val1 << endl;
-	cout << val2 << endl;
-	cout << " ------------\n";
-	P_PRES maxDiff = 0.0;
-	for( int i = 0; i < gg2.size(); ++i )
-	{
-		if( abs( gg[i] - gg2[i] ) > maxDiff )
-		{
-			maxDiff = abs( gg[i] - gg2[i] );
-		}
-	}
-	cout << " lInf diff in grad is " << maxDiff << endl;
-	cout << " ------------\n";
-	
-	val1 = preBudgetConstr( xx, gg, ( void* )( &dataPack ) );
-	val2 = budgetConstr( xx, gg2, ( void* )( &dataPack ) );
-
-	cout << " ------------\n";
-	cout << val1 << endl;
-	cout << val2 << endl;
-	cout << " ------------\n";
-	maxDiff = 0.0;
-	for( int i = 0; i < gg2.size(); ++i )
-	{
-		if( abs( gg[i] - gg2[i] ) > maxDiff )
-		{
-			maxDiff = abs( gg[i] - gg2[i] );
-		}
-	}
-	cout << " lInf diff in grad is " << maxDiff << endl;
-	cout << " ------------\n";
-
-	std::cin.ignore( std::numeric_limits<std::streamsize>::max(), '\n' );
-
-	//ifstream ifs( "MMAoptPoint.txt" );
+	// get the optimal point from here
+	//ifstream ifs( "MMAoptPoint2.txt" );
 	//for( int i = 0; i < dataPack.stockNames.size() * 2; ++i )
 	//{
 	//	ifs >> xx[i];
-	//	cout << xx[i] << endl;
+	//	//cout << xx[i] << endl;
 	//}
-	//cout << " ---------------\n";
+	////cout << " ---------------\n";
 	//ifs.close();
+
+	///////////////////////////////////
+	// TESTING NEW AND OLD OPTION CALC APPROACHES
+	///////////////////////////////////
+
+	//vector<HPD<P_PRES, 1> > P;
+	//vector<P_PRES> Sarr;
+	//priceAmerPut<HPD<P_PRES, 1> >( dataPack.expTime, dataPack.stockPricesScenSorted[1][0], dataPack.stockPricesScenSorted[1][dataPack.stockPricesScenSorted[1].size() - 1]
+	//						, xx[1 + dataPack.stockNames.size()], dataPack.stockPrices[1] / 2.0, dataPack.stockPrices[1] * 2.0, dataPack.riskFreeRate, dataPack.stockVols[1]
+	//						, &P, &Sarr );
+
+	//vector<HPD<P_PRES, 1> > u;
+	//P_PRES Lmin;
+	//P_PRES dx;
+	//prePriceAmerPut( dataPack.expTime, dataPack.stockPricesScenSorted[1][0], dataPack.stockPricesScenSorted[1][dataPack.stockPricesScenSorted[1].size() - 1]
+	//						, dataPack.stockPrices[1] / 2.0, dataPack.stockPrices[1] * 2.0, dataPack.riskFreeRate, dataPack.stockVols[1]
+	//						, &u, &Lmin, &dx );
+
+	//P_PRES sStep = ( dataPack.stockPricesScenSorted[1][dataPack.stockPricesScenSorted[1].size() - 1] * 9.0 - dataPack.stockPricesScenSorted[1][0] / 19.0 ) / 100.0;
+	//vector<P_PRES> sGrid( 1, dataPack.stockPricesScenSorted[1][0] / 19.0 );
+	//vector<int> spotsOrder( 1, 0 );
+	//for( int i = 1; i < 100; ++i )
+	//{
+	//	sGrid.push_back( sGrid[i - 1] + sStep );
+	//	spotsOrder.push_back( i );
+	//}
+	//vector<HPD<P_PRES, 1> > P1( sGrid.size(), 0.0 );
+	//vector<HPD<P_PRES, 1> > P2( sGrid.size(), 0.0 );
+
+	//for( int i = 0; i < sGrid.size(); ++i )
+	//{
+	//	P1[i] = optPriceAt<HPD<P_PRES, 1> >( sGrid[i], P, Sarr );
+	//}
+	//preOptPriceAt( sGrid, spotsOrder, xx[1 + dataPack.stockNames.size()]
+	//				, u, Lmin, dx, dataPack.expTime, dataPack.riskFreeRate, dataPack.stockVols[1]
+	//				, &P2 );
+
+	//ofstream testOfs( "option test prices.txt" );
+	//for( int i = 0; i < sGrid.size(); ++i )
+	//{
+	//	testOfs << sGrid[i] << " " << P1[i].real() << " " << P2[i].real() << " " << P1[i].elems[1] << " " << P2[i].elems[1] << endl;
+	//}
+	//testOfs.close();
+
+	//std::cin.ignore( std::numeric_limits<std::streamsize>::max(), '\n' );
+
+	///////////////////////////////////
+	// END TESTING NEW AND OLD OPTION CALC APPROACHES
+	///////////////////////////////////
 
 	//cout << " Start running options algorithm:\n";
 	//time_t begin = time( 0 );
@@ -117,8 +128,8 @@ int main()
 
 	int dim = dataPack.stockNames.size() * 2;
 
-	//nlopt::opt opt( nlopt::LD_MMA, dim );
-	nlopt::opt opt( nlopt::LD_SLSQP, dim );
+	nlopt::opt opt( nlopt::LD_MMA, dim );
+	//nlopt::opt opt( nlopt::LD_SLSQP, dim );
 	//nlopt::opt opt( nlopt::GN_ISRES, dim );
 	//nlopt::opt opt( nlopt::LD_LBFGS, dim );
 
@@ -127,7 +138,7 @@ int main()
 	{
 		lb[i] = 0.0;
 	}
-	for( int i = dataPack.stockNames.size(); i < dim; ++i )
+	for( int i = dataPack.stockNames.size(); i < dim; ++i )//lower bounds for strikes
 	{
 		lb[i] = dataPack.stockPrices[i - dataPack.stockNames.size()] / 2.0;
 	}
@@ -139,7 +150,7 @@ int main()
 		//ub[i] = 0.1;	//for budget weights problem
 		ub[i] = 1000;
 	}
-	for( int i = dataPack.stockNames.size(); i < dim; ++i )
+	for( int i = dataPack.stockNames.size(); i < dim; ++i )//upper bounds for strikes
 	{
 		ub[i] = dataPack.stockPrices[i - dataPack.stockNames.size()] * 2.0;
 	}
@@ -151,8 +162,8 @@ int main()
 
 	opt.set_xtol_rel( 1e-10 );
 	opt.set_ftol_rel( 1e-10 );
-	//opt.set_stopval( 1.054 );
-	//opt.set_maxtime( 7200 * 2 * 2 * 2 * 2 * 2 );
+	//opt.set_stopval( 10470 );
+	//opt.set_maxtime( 345600 );
 
 	P_PRES minf;
 	nlopt::result result;

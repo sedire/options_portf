@@ -123,7 +123,7 @@ P_PRES preOptionPortfObj( const vector<P_PRES> &x, vector<P_PRES> &grad, void* f
 	P_PRES obj = 0.0;
 	for( int stock = 0; stock < stockNum; ++stock )
 	{
-		prepOptPriceAt<HPD<P_PRES, 1> >( dataPack->stockPricesScenSorted[stock], dataPack->stockPricesScenOrder[stock], x[stock + stockNum]
+		preOptPriceAt<HPD<P_PRES, 1> >( dataPack->stockPricesScenSorted[stock], dataPack->stockPricesScenOrder[stock], x[stock + stockNum]
 					, dataPack->us[stock], dataPack->Lmins[stock], dataPack->dxs[stock]
 					, maturityTime, dataPack->riskFreeRate, dataPack->stockVols[stock]
 					, &optionScenPrices );
@@ -343,6 +343,7 @@ P_PRES optionPortfObjWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, voi
 
 P_PRES budgetConstr( const vector<P_PRES> &x, vector<P_PRES> &grad, void* data )
 {
+	time_t beginT = time( 0 );
 	cout << " constr called at  " << x[0] << " ... " << x[x.size() / 2 - 1] << " " << x[x.size() / 2] << " ... " << x[x.size() - 1] << endl;
 	if( data == 0 )
 	{
@@ -393,12 +394,14 @@ P_PRES budgetConstr( const vector<P_PRES> &x, vector<P_PRES> &grad, void* data )
 		}
 	}
 	cout << " constr value " << ret - TOTAL_BUDGET << endl;
+	cout << " done in " << time( 0 ) - beginT << endl;
 	cout << " ====================\n";
 	return ret - TOTAL_BUDGET;
 }
 
 P_PRES preBudgetConstr( const vector<P_PRES> &x, vector<P_PRES> &grad, void* data )
 {
+	time_t beginT = time( 0 );
 	cout << " constr called at  " << x[0] << " ... " << x[x.size() / 2 - 1] << " " << x[x.size() / 2] << " ... " << x[x.size() - 1] << endl;
 	if( data == 0 )
 	{
@@ -424,7 +427,7 @@ P_PRES preBudgetConstr( const vector<P_PRES> &x, vector<P_PRES> &grad, void* dat
 		vector<P_PRES> singleSpot( 1, stockPrice );	//only a single price
 		vector<int> trivialOrder( 1, 0 );		//the order is trivial
 
-		prepOptPriceAt( singleSpot, trivialOrder, x[stock + stockNum]
+		preOptPriceAt<HPD<P_PRES, 1> >( singleSpot, trivialOrder, x[stock + stockNum]
 					, dataPack->us0[stock], dataPack->Lmins0[stock], dataPack->dxs0[stock]
 					, maturityTime, dataPack->riskFreeRate, dataPack->stockVols[stock]
 					, &optionPrice );
@@ -437,12 +440,14 @@ P_PRES preBudgetConstr( const vector<P_PRES> &x, vector<P_PRES> &grad, void* dat
 		}
 	}
 	cout << " constr value " << ret - TOTAL_BUDGET << endl;
+	cout << " done in " << time( 0 ) - beginT << endl;
 	cout << " ====================\n";
 	return ret - TOTAL_BUDGET;
 }
 
 P_PRES budgetConstrNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void* data )
 {
+	time_t beginT = time( 0 );
 	cout << " constr (no grad) called at  " << x[0] << " ... " << x[x.size() / 2 - 1] << " " << x[x.size() / 2] << " ... " << x[x.size() - 1] << endl;
 	if( data == 0 )
 	{
@@ -487,12 +492,14 @@ P_PRES budgetConstrNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void* 
 		}
 	}
 	cout << " constr value " << ret - TOTAL_BUDGET << endl;
+	cout << " done in " << time( 0 ) - beginT << endl;
 	cout << " ====================\n";
 	return ret - TOTAL_BUDGET;
 }
 
 P_PRES budgetConstrWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, void* data )
 {
+	time_t beginT = time( 0 );
 	cout << " constr called at  " << x[0] << " ... " << x[x.size() / 2 - 1] << " " << x[x.size() / 2] << " ... " << x[x.size() - 1] << endl;
 	if( data == 0 )
 	{
@@ -522,6 +529,7 @@ P_PRES budgetConstrWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, void*
 	}
 
 	cout << " constr value " << ret - 1.0 << endl;
+	cout << " done in " << time( 0 ) - beginT << endl;
 	cout << " ====================\n";
 	return ret - 1.0;
 }

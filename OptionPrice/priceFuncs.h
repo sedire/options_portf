@@ -14,7 +14,7 @@
 
 namespace ublas = boost::numeric::ublas;
 
-using namespace System;
+//using namespace System;
 using std::ofstream;
 using std::max;
 
@@ -330,8 +330,9 @@ int priceAmerPut( P_PRES expT, P_PRES Smin, P_PRES Smax
 //use the pre-calculated u-function to construct the option's price with given strike at given spots
 //the output is the vector of prices for each scenario.
 //Should also work for just a single spot. In that case spotsSorted, spotsOrder and P will each contain a single element.
+//This is essentially transformation + integration
 template <class PR_NUM>
-int prepOptPriceAt( const vector<P_PRES>& spotsSorted, const vector<int>& spotsOrder, P_PRES E
+int preOptPriceAt( const vector<P_PRES>& spotsSorted, const vector<int>& spotsOrder, P_PRES E
 					, const vector<PR_NUM>& u, P_PRES Lmin, P_PRES dx, P_PRES expT, P_PRES r, P_PRES sigma
 					, vector<PR_NUM>* P )
 {
@@ -360,6 +361,7 @@ int prepOptPriceAt( const vector<P_PRES>& spotsSorted, const vector<int>& spotsO
 		P_PRES nextS = E * exp( curX + dx );
 
 		//need to create a mesh for real option prices also!
+		//calculating the real price and its derivative from the mesh u[]
 		PR_NUM curP = E * exp( -0.5 * ( k - 1.0 ) * curX - 0.25 * ( k + 1.0 ) * ( k + 1.0 ) * finalTau ) * u[i];
 		setElem( curP, 1, exp( -0.5 * ( k - 1.0 ) * curX - 0.25 * ( k + 1.0 ) * ( k + 1.0 ) * finalTau )
 							* ( ( 1.0 + 0.5 * ( k - 1.0 ) ) * getRealPart( u[i] ) - getElem( u[i], 1 ) ) );
