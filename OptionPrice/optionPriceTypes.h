@@ -12,6 +12,7 @@
 #define NUM_OF_SPACE_STEPS 3000
 
 #define TOTAL_BUDGET 10000.0	//no longer need it when solving for weights, not quantities
+#define MAX_NUM_OF_STOCK_TO_BUY 1000
 
 #define PSOR_ERROR_EPS 1e-6	//was 1e-6
 

@@ -35,4 +35,8 @@ P_PRES preBudgetConstr( const vector<P_PRES> &x, vector<P_PRES> &grad, void* dat
 P_PRES budgetConstrNoGrad( const vector<P_PRES> &x, vector<P_PRES> &grad, void* data );
 P_PRES budgetConstrWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, void* data );
 
+int calcPriceAsFuncOfStrike( void* data );
+int minimizeRPP( void* data, P_PRES mu, P_PRES* phiNu, P_PRES* mismatch, P_PRES* origObjVal );
+int optimizeLR( void* data, P_PRES muInit );
+
 #endif

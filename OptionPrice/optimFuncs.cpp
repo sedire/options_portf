@@ -533,3 +533,198 @@ P_PRES budgetConstrWeights( const vector<P_PRES> &x, vector<P_PRES> &grad, void*
 	cout << " ====================\n";
 	return ret - 1.0;
 }
+
+/////////////////////////////////////////////////////////////////////////////////
+// For LR approach
+/////////////////////////////////////////////////////////////////////////////////
+
+int calcPriceAsFuncOfStrike( void* data )
+{
+	if( data == 0 )
+	{
+		cout << "ERROR in calcPriceAsFuncOfStrike: passed data is null\n";
+		return 0;
+	}
+	StockDataPack<P_PRES>* dataPack = static_cast<StockDataPack<P_PRES>*>( data );
+	int stockNum = dataPack->stockNames.size();
+	int scenNum = dataPack->stockReturns[0].size();
+	P_PRES maturityTimeInit = dataPack->expTime;
+	P_PRES maturityTimeRebal = dataPack->expTime - dataPack->rebalanceTime;
+	P_PRES scenProb = 1.0 / scenNum;
+
+	vector<P_PRES> optionScenPrices( scenNum );
+	vector<P_PRES> optionPrice( 1 );
+
+	for( int stock = 0; stock < stockNum; ++stock )
+	{
+		cout << " stock " << stock << endl;
+		P_PRES stockPrice = dataPack->stockPrices[stock];
+		vector<P_PRES> singleSpot( 1, stockPrice );		//only a single price
+		vector<int> trivialOrder( 1, 0 );				//the order is trivial
+
+		P_PRES dE = 0.1;								//discretize strikes down to 10 cents difference
+		P_PRES curStrike = stockPrice / 2.0 + dE;
+
+		ofstream ofs( "optPrices" + std::to_string( static_cast<long long>( stock ) ) + ".txt" );
+		while( curStrike < stockPrice * 2.0 )
+		{
+			preOptPriceAt<P_PRES>( singleSpot, trivialOrder, curStrike
+						, dataPack->us0[stock], dataPack->Lmins0[stock], dataPack->dxs0[stock]
+						, maturityTimeInit, dataPack->riskFreeRate, dataPack->stockVols[stock]
+						, &optionPrice );
+
+			preOptPriceAt<P_PRES>( dataPack->stockPricesScenSorted[stock], dataPack->stockPricesScenOrder[stock], curStrike
+					, dataPack->us[stock], dataPack->Lmins[stock], dataPack->dxs[stock]
+					, maturityTimeRebal, dataPack->riskFreeRate, dataPack->stockVols[stock]
+					, &optionScenPrices );
+
+			P_PRES optPriceAv = 0.0;
+			for( int scen = 0; scen < scenNum; ++scen )
+			{
+				optPriceAv += scenProb * optionScenPrices[scen];
+			}
+
+			ofs << curStrike << " "  << optionPrice[ 0 ] << " " << optPriceAv << endl;
+
+			curStrike += dE;
+		}
+		ofs.close();
+	}
+
+	return 1;
+}
+
+//iteration of a lagrangian relaxation method (LR)
+//solve the reduced primal problem for given mu
+//since the problem is decoupled, can just check the value of the objective function
+//at a discrete set of strike values
+int minimizeRPP( void* data, P_PRES mu, P_PRES* phiNu, P_PRES* mismatch, P_PRES* origObjVal )
+{
+	if( data == 0 )
+	{
+		cout << "ERROR in minimizeRPP: passed data is null\n";
+		return 0;
+	}
+	StockDataPack<P_PRES>* dataPack = static_cast<StockDataPack<P_PRES>*>( data );
+	int stockNum = dataPack->stockNames.size();
+	int scenNum = dataPack->stockReturns[0].size();
+	P_PRES maturityTimeInit = dataPack->expTime;
+	P_PRES maturityTimeRebal = dataPack->expTime - dataPack->rebalanceTime;
+	P_PRES scenProb = 1.0 / scenNum;
+
+	vector<P_PRES> optionScenPrices( scenNum );
+	vector<P_PRES> optionPrice( 1 );
+
+	//ofstream ofs( "minimizer.txt" );
+	P_PRES obj = 0.0;	//will calculate the objective stock by stock
+	P_PRES gConstr = 0.0;	//constraint mismatch
+	P_PRES origObj = 0.0;	//objective of the original problem
+
+	for( int stock = 0; stock < stockNum; ++stock )
+	{
+		//cout << " stock " << stock << endl;
+		P_PRES stockPrice = dataPack->stockPrices[stock];
+		vector<P_PRES> singleSpot( 1, stockPrice );		//only a single price
+		vector<int> trivialOrder( 1, 0 );				//the order is trivial
+
+		P_PRES dE = 0.1;								//discretize strikes down to 10 cents difference
+		P_PRES curStrike = stockPrice / 2.0 + dE;
+
+		P_PRES strikeMinimizer = curStrike;
+		P_PRES minValue = 0;
+		P_PRES optimalInitOptionPrice = 0.0;
+		P_PRES optimalRebAvOptionPrice = 0.0;
+		int minValueInitialized = 0;
+
+		while( curStrike < stockPrice * 2.0 )
+		{
+			preOptPriceAt<P_PRES>( singleSpot, trivialOrder, curStrike
+						, dataPack->us0[stock], dataPack->Lmins0[stock], dataPack->dxs0[stock]
+						, maturityTimeInit, dataPack->riskFreeRate, dataPack->stockVols[stock]
+						, &optionPrice );
+
+			preOptPriceAt<P_PRES>( dataPack->stockPricesScenSorted[stock], dataPack->stockPricesScenOrder[stock], curStrike
+					, dataPack->us[stock], dataPack->Lmins[stock], dataPack->dxs[stock]
+					, maturityTimeRebal, dataPack->riskFreeRate, dataPack->stockVols[stock]
+					, &optionScenPrices );
+
+			P_PRES optPriceAv = 0.0;
+			for( int scen = 0; scen < scenNum; ++scen )
+			{
+				optPriceAv += scenProb * optionScenPrices[scen];
+			}
+
+			P_PRES value = mu * optionPrice[ 0 ] - optPriceAv;
+			if( minValueInitialized == 0 )
+			{
+				minValue = value;
+				strikeMinimizer = curStrike;
+				optimalInitOptionPrice = optionPrice[ 0 ];
+				optimalRebAvOptionPrice = optPriceAv;
+
+				minValueInitialized = 1;
+			}
+			else if( value < minValue )
+			{
+				minValue = value;
+				strikeMinimizer = curStrike;
+				optimalInitOptionPrice = optionPrice[ 0 ];
+				optimalRebAvOptionPrice = optPriceAv;
+			}
+			
+			curStrike += dE;
+		}
+
+		if( minValue < 0 )
+		{
+			obj += minValue * MAX_NUM_OF_STOCK_TO_BUY;
+			gConstr += MAX_NUM_OF_STOCK_TO_BUY * optimalInitOptionPrice;
+			origObj += MAX_NUM_OF_STOCK_TO_BUY * optimalRebAvOptionPrice;
+		}
+		//ofs << stock << " " << strikeMinimizer << " " << minValue << endl;
+	}
+
+	*phiNu = obj - mu * TOTAL_BUDGET;
+	*mismatch = gConstr - TOTAL_BUDGET;
+	*origObjVal = origObj;
+
+	//ofs.close();
+	return 0;
+}
+
+
+int optimizeLR( void* data, P_PRES muInit )
+{
+	if( data == 0 )
+	{
+		cout << "ERROR in minimizeRPP: passed data is null\n";
+		return 0;
+	}
+
+	P_PRES curMu = muInit;
+	P_PRES prevMu = muInit;
+	P_PRES phiNu = 0.0;
+	P_PRES mismatch = 0.0;
+	P_PRES origObj = 0.0;
+	P_PRES phiLB = -1e10;
+	int nu = 1;
+	do
+	{
+		minimizeRPP( data, curMu, &phiNu, &mismatch, &origObj );
+
+		if( phiNu > phiLB )
+		{
+			phiLB = phiNu;
+		}
+
+		prevMu = curMu;
+		curMu += mismatch / abs( mismatch ) / nu; 		
+
+		cout << " -- " << nu << " ; mu " << curMu << " ; " << phiLB << " ; " << mismatch << " ; " << origObj << endl;
+		++nu;
+	} while( abs( curMu - prevMu ) / abs( prevMu ) > 1e-6 );
+
+	cout << " opt done " << phiLB << endl;
+
+	return 0;
+}

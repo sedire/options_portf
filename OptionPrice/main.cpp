@@ -1,8 +1,8 @@
 #ifndef _MAIN_FUNC_
 #define _MAIN_FUNC_ 1
 
-//#pragma comment( lib, "D:/research/nlopt-2.4.2-dll64/libnlopt-0.lib" )
-#pragma comment( lib, "C:/Users/dchernikov/Documents/nlopt-2.4.2-dll64/libnlopt-0.lib" )
+#pragma comment( lib, "D:/research/nlopt-2.4.2-dll64/libnlopt-0.lib" )
+//#pragma comment( lib, "C:/Users/dchernikov/Documents/nlopt-2.4.2-dll64/libnlopt-0.lib" )
 
 #include <iostream>
 #include <iomanip>
@@ -22,16 +22,17 @@ using std::endl;
 
 int main()
 {
-	StockDataPack<HPD<P_PRES, 1> > dataPack;
+	//StockDataPack<HPD<P_PRES, 1> > dataPack;
+	StockDataPack<P_PRES> dataPack;
 
 	time_t beginT1 = time( 0 );
 
 	InputReader inpReader;
-	inpReader.readStockData( "C:\\Users\\dchernikov\\Documents\\OptionPaper\\newfile.csv" /*"D:\\docs\\study\\OptionPaper\\newfile.csv"*/
+	inpReader.readStockData( /*"C:\\Users\\dchernikov\\Documents\\OptionPaper\\newfile.csv"*/ "D:\\docs\\study\\OptionPaper\\newfile.csv"
 								, &dataPack.stockNames, &dataPack.stockPrices, &dataPack.stockVols, &dataPack.stockReturns );
 	dataPack.rebalanceTime = 5.0 / 252.0;	//rebalance every week
-	dataPack.expTime = 1.5;				//options will mature in about a year and a half
-	dataPack.riskFreeRate = 0.0072;		//12-month goverment bond yield as a rist-free rate
+	dataPack.expTime = 1.5;					//options will mature in about a year and a half
+	dataPack.riskFreeRate = 0.0072;			//12-month goverment bond yield as a risk-free rate
 
 	beginT1 = time( 0 );
 	dataPack.doPreCalc();
@@ -43,6 +44,13 @@ int main()
 	{
 		xx[i] = dataPack.stockPrices[i - dataPack.stockNames.size()];	//initial strikes are current prices of stocks
 	}
+
+	//calcPriceAsFuncOfStrike( (void*)&dataPack );
+	time_t beginT = time( 0 );
+	//minimizeRPP( (void*)&dataPack, 1.0 );
+	optimizeLR( (void*)&dataPack, 0.1 );
+	cout << "price funcs calculated in " << time( 0 ) - beginT << " sec \n";
+	std::cin.ignore( std::numeric_limits<std::streamsize>::max(), '\n' );
 
 	// get the optimal point from here
 	//ifstream ifs( "MMAoptPoint2.txt" );
@@ -148,7 +156,7 @@ int main()
 	for( int i = 0; i < dataPack.stockNames.size(); ++i )
 	{
 		//ub[i] = 0.1;	//for budget weights problem
-		ub[i] = 1000;
+		ub[i] = MAX_NUM_OF_STOCK_TO_BUY;
 	}
 	for( int i = dataPack.stockNames.size(); i < dim; ++i )//upper bounds for strikes
 	{
